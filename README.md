@@ -68,8 +68,6 @@ python app.py
 ### Ticket Generation
 ![Ticket Generation](https://via.placeholder.com/800x400?text=Generated+Jira+Tickets)
 
-<img width="1887" height="913" alt="image" src="https://github.com/user-attachments/assets/ed046f04-e715-430c-8370-bf57c49dadd6" />
-
 
 🎯 Use Cases
 Daily Standups - Convert team updates into action items
