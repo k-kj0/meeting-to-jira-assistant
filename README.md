@@ -1,141 +1,109 @@
-# 🎙️ Meeting to Jira Assistant
+# Meeting to Jira Assistant
 
-[![Live Demo](https://img.shields.io/badge/Live_Demo-View_App-0052CC?style=for-the-badge&logo=render)](https://meeting-to-jira-assistant.onrender.com)
-[![GitHub Repo](https://img.shields.io/badge/GitHub-View_Code-181717?style=for-the-badge&logo=github)](https://github.com/k-kjo/meeting-to-jira-assistant)
+![screenshot 1](https://github.com/user-attachments/assets/facb0672-26b7-4ced-a0a4-611084eed0cf)
+![screenshot 2](https://github.com/user-attachments/assets/72386b37-783e-457a-9bd9-fd3bff450025)
+![screenshot 3](https://github.com/user-attachments/assets/fa98b966-dc61-40d3-8dbc-658e2a8a84d1)
+![screenshot 4](https://github.com/user-attachments/assets/568ac556-0530-4d21-971d-d74edae14a16)
+![screenshot 5](https://github.com/user-attachments/assets/1db39141-3cd2-4748-b923-20fa2687cbc7)
+![screenshot 6](https://github.com/user-attachments/assets/5c04db91-2666-4fd3-a299-e7996bced652)
 
-> **AI-powered web application that automatically converts meeting transcripts into Jira tickets**
+---
 
-## 🌐 Live Demo
+A web application that converts meeting transcripts into Jira tickets automatically. Paste a transcript, and the app extracts action items and creates structured Jira tickets — no manual ticket writing required.
 
-**Try it now:** [https://meeting-to-jira-assistant.onrender.com](https://meeting-to-jira-assistant.onrender.com)
+---
 
-## 📋 Overview
+## Overview
 
-This tool solves a real problem engineers and project managers face daily: manually creating Jira tickets from meeting notes. Simply paste your meeting transcript, and the app extracts action items and creates formatted Jira tickets automatically.
+Engineering teams and project managers lose hours every week turning meeting notes into Jira tickets. This tool eliminates that work. It reads a meeting transcript, identifies action items, and pushes formatted tickets directly to your Jira project via the REST API.
 
-### How It Works
+---
 
-1. **Paste** your meeting transcript
-2. **Analyze** - AI extracts action items using keyword detection
-3. **Generate** - Creates formatted Jira tickets
-4. **View** - Clickable ticket links for easy access
+## How It Works
 
-## ✨ Features
+Paste your meeting transcript into the input field. The app scans the text for action items using keyword detection, structures each one into a Jira ticket format, and creates them in your project automatically. Each ticket appears as a clickable link so you can review or edit it immediately in Jira.
 
-| Feature | Description |
-|---------|-------------|
-| 📝 **Smart Extraction** | Detects action items using natural language processing |
-| 🔗 **Jira Integration** | Creates real tickets via Jira REST API |
-| 🎨 **Clean UI** | Professional design with Jira color scheme |
-| 📱 **Responsive** | Works on desktop, tablet, and mobile |
-| ⚡ **Fast Processing** | Instant ticket generation |
-| 🔒 **Secure** | API tokens stored securely as environment variables |
+---
 
-## 🛠️ Tech Stack
+## Features
 
-| Category | Technologies |
-|----------|-------------|
-| **Backend** | Python, Flask |
-| **Frontend** | HTML5, CSS3, JavaScript |
-| **API** | Jira REST API v3 |
-| **Deployment** | Render |
-| **Version Control** | Git, GitHub |
+- Extracts action items from unstructured meeting text
+- Creates real Jira tickets via the Jira REST API v3
+- Returns clickable ticket links after creation
+- Responsive UI that works on desktop and mobile
+- API credentials stored securely as environment variables
 
-## 🚀 Quick Start
+---
+
+## Tech Stack
+
+- **Backend** — Python, Flask
+- **Frontend** — HTML5, CSS3, JavaScript
+- **Integration** — Jira REST API v3
+- **Deployment** — Render
+
+---
+
+## Getting Started
 
 ### Prerequisites
-- Python 3.8+
-- Jira account with API access
+
+- Python 3.8 or higher
+- A Jira account with API access
+- A Jira project to push tickets into
 
 ### Installation
 
 ```bash
-# Clone the repository
 git clone https://github.com/k-kjo/meeting-to-jira-assistant.git
 cd meeting-to-jira-assistant
-
-# Install dependencies
 pip install -r requirements.txt
+```
 
-# Run the app
+### Configuration
+
+Create a `.env` file in the root of the project:
+
+```
+JIRA_BASE_URL=https://your-domain.atlassian.net
+JIRA_EMAIL=your-email@example.com
+JIRA_API_TOKEN=your_api_token_here
+JIRA_PROJECT_KEY=YOUR_PROJECT_KEY
+```
+
+To get your Jira API token, go to your Atlassian account settings under Security → API tokens → Create API token.
+
+### Running Locally
+
+```bash
 python app.py
+```
 
-## 📸 Screenshots
+The app will be available at `http://localhost:5000`.
 
-### Main Interface
-![Main Interface](https://via.placeholder.com/800x400?text=Meeting+to+Jira+Assistant+UI)
+---
 
-### Ticket Generation
-![Ticket Generation](https://via.placeholder.com/800x400?text=Generated+Jira+Tickets)
+## Project Structure
 
-
-🎯 Use Cases
-Daily Standups - Convert team updates into action items
-
-Client Meetings - Track client requests and commitments
-
-Sprint Planning - Create tickets directly from planning sessions
-
-Bug Triage - Extract bug reports from meetings
-
-📁 Project Structure
-text
+```
 meeting-to-jira-assistant/
-├── app.py                 # Flask application
-├── requirements.txt       # Python dependencies
-├── README.md             # Documentation
+├── app.py                  # Flask app and Jira API logic
+├── requirements.txt        # Python dependencies
 ├── templates/
-│   └── index.html        # Frontend UI
-└── .gitignore            # Git ignore rules
-🚢 Deployment
-This app is deployed on Render with auto-deploy from GitHub. Any push to the main branch triggers a new deployment.
+│   └── index.html          # Frontend
+├── static/
+│   └── style.css           # Styles
+└── .env                    # Local credentials (not committed)
+```
 
-Live URL: https://meeting-to-jira-assistant.onrender.com
+---
 
-Setting Up Your Own Deployment
-Fork this repository
+## Contributing
 
-Create a Render account
+Open an issue before submitting a pull request for major changes. Small fixes and improvements are welcome directly as PRs.
 
-Add environment variables:
+---
 
-JIRA_DOMAIN
+## License
 
-JIRA_EMAIL
-
-JIRA_API_TOKEN
-
-Connect your GitHub repository to Render
-
-Deploy!
-
-🔧 Future Enhancements
-Add OpenAI GPT integration for smarter extraction
-
-Support for multiple Jira projects
-
-Export tickets to CSV
-
-Custom ticket templates
-
-Meeting recording upload
-
-Slack integration
-
-Email notifications
-
-🤝 Contributing
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-Fork the repository
-
-Create your feature branch (git checkout -b feature/AmazingFeature)
-
-Commit your changes (git commit -m 'Add some AmazingFeature')
-
-Push to the branch (git push origin feature/AmazingFeature)
-
-Open a Pull Request
-
-📄 License
-This project is open source and available under the MIT License
+MIT © 2025
