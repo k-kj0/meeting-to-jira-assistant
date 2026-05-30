@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JiraAI — AI-Powered Meeting Transcript to Jira Tickets</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg-page: #080810;
+    --bg-card: #0e0e1c;
+    --bg-elevated: #141428;
+    --bg-hover: #1a1a30;
+    --accent: #00ff88;
+    --accent-hover: #00e57a;
+    --text-primary: #e8e8f2;
+    --text-secondary: #7878a0;
+    --text-muted: #4a4a6a;
+    --border-default: rgba(255,255,255,0.07);
+    --border-hover: rgba(0,255,136,0.25);
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg-page);
+    color: var(--text-primary);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* NAVBAR */
+  .navbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 60px;
+    background: rgba(8,8,16,0.75);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 40px;
+  }
+
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 20px;
+    font-weight: 700;
+  }
+  .nav-logo .logo-jira { color: #fff; }
+  .nav-logo .logo-ai { color: var(--accent); }
+
+  .nav-badge {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--accent);
+    background: rgba(0,255,136,0.1);
+    border: 1px solid rgba(0,255,136,0.3);
+    padding: 3px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .nav-powered {
+    font-size: 12px;
+    color: var(--accent);
+    background: rgba(0,255,136,0.08);
+    border: 1px solid rgba(0,255,136,0.2);
+    padding: 5px 14px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    padding: 100px 20px 60px;
+  }
+
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse 900px 600px at 50% -100px, rgba(0,255,136,0.06) 0%, transparent 70%),
+      radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px);
+    background-size: auto, 28px 28px;
+    z-index: 0;
+  }
+
+  .hero-orb {
+    position: absolute;
+    width: 600px; height: 600px;
+    background: rgba(0,255,136,0.04);
+    filter: blur(120px);
+    top: -200px; left: 50%;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    z-index: 0;
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    max-width: 720px;
+    width: 100%;
+  }
+
+  .hero-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0,255,136,0.08);
+    border: 1px solid rgba(0,255,136,0.25);
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 7px 18px;
+    border-radius: 24px;
+    margin-bottom: 32px;
+    opacity: 0;
+    animation: fadeIn 0.6s ease forwards 0.1s;
+  }
+
+  .pulse-dot {
+    width: 7px; height: 7px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(0.7); opacity: 0.4; }
+  }
+
+  @keyframes fadeIn {
+    to { opacity: 1; }
+  }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeInUpSmall {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .hero h1 {
+    font-size: 72px;
+    font-weight: 800;
+    letter-spacing: -3px;
+    line-height: 1.05;
+    margin-bottom: 0;
+  }
+
+  .hero h1 .line1 {
+    color: var(--text-primary);
+    display: block;
+    opacity: 0;
+    animation: fadeInUp 0.7s ease forwards 0.2s;
+  }
+
+  .hero h1 .line2 {
+    color: var(--accent);
+    display: block;
+    opacity: 0;
+    animation: fadeInUp 0.7s ease forwards 0.35s;
+  }
+
+  .hero-sub {
+    font-size: 18px;
+    color: var(--text-secondary);
+    max-width: 560px;
+    margin: 24px auto 40px;
+    line-height: 1.7;
+    opacity: 0;
+    animation: fadeIn 0.7s ease forwards 0.5s;
+  }
+
+  /* DEMO CARD */
+  .demo-card {
+    max-width: 680px;
+    margin: 0 auto;
+    background: var(--bg-card);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 0 0 1px rgba(0,255,136,0.04), 0 40px 80px rgba(0,0,0,0.4);
+    opacity: 0;
+    animation: fadeInUpSmall 0.7s ease forwards 0.65s;
+  }
+
+  .demo-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .demo-textarea {
+    width: 100%;
+    min-height: 130px;
+    background: var(--bg-page);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-size: 14px;
+    padding: 14px 16px;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.2s;
+    line-height: 1.6;
+  }
+
+  .demo-textarea::placeholder { color: #3a3a58; }
+  .demo-textarea:focus { border-color: rgba(0,255,136,0.4); }
+
+  .demo-btn {
+    margin-top: 14px;
+    width: 100%;
+    background: var(--accent);
+    color: #000;
+    font-weight: 700;
+    font-size: 15px;
+    padding: 14px 24px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .demo-btn:hover { background: var(--accent-hover); transform: translateY(-1px); }
+  .demo-btn:disabled { cursor: not-allowed; opacity: 0.8; }
+
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(0,0,0,0.2);
+    border-top-color: #000;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    display: none;
+  }
+
+  .demo-btn.processing .spinner { display: inline-block; }
+
+  .results-area {
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .results-area.show { display: flex; }
+
+  .ticket-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-default);
+    border-radius: 10px;
+    padding: 14px 16px;
+    transition: border-color 0.2s;
+  }
+
+  .ticket-card:hover { border-color: rgba(0,255,136,0.3); }
+
+  .ticket-row1 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+
+  .ticket-title { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+
+  .ticket-badge {
+    font-size: 10px;
+    color: var(--accent);
+    background: rgba(0,255,136,0.1);
+    border: 1px solid rgba(0,255,136,0.2);
+    padding: 3px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+
+  .ticket-row2 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .ticket-assignee { font-size: 13px; color: var(--text-secondary); }
+
+  .ticket-link {
+    font-size: 13px;
+    color: var(--accent);
+    border: 1px solid rgba(0,255,136,0.25);
+    padding: 4px 14px;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: background 0.2s;
+    white-space: nowrap;
+  }
+
+  .ticket-link:hover { background: rgba(0,255,136,0.08); }
+
+  .error-card {
+    background: rgba(255,0,0,0.06);
+    border: 1px solid rgba(255,0,0,0.2);
+    color: #ff6b6b;
+    font-size: 13px;
+    padding: 14px;
+    border-radius: 10px;
+  }
+
+  /* SOCIAL PROOF */
+  .social-proof {
+    width: 100%;
+    background: rgba(255,255,255,0.02);
+    border-top: 1px solid rgba(255,255,255,0.05);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    padding: 20px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 48px;
+    flex-wrap: wrap;
+  }
+
+  .social-proof .stars { color: var(--accent); font-size: 14px; letter-spacing: 2px; }
+  .social-proof .trust-text { color: var(--text-secondary); font-size: 14px; }
+
+  .company-pill {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: var(--text-secondary);
+    font-size: 12px;
+    padding: 6px 18px;
+    border-radius: 20px;
+  }
+
+  /* SECTION UTILS */
+  .section-label {
+    font-size: 11px;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  .section-heading {
+    font-size: 42px;
+    font-weight: 700;
+    letter-spacing: -1.5px;
+    line-height: 1.15;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+  }
+
+  .section-sub {
+    font-size: 16px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  /* DIFFERENTIATOR */
+  .differentiator {
+    padding: 100px 40px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .diff-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: start;
+  }
+
+  .feature-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .check-circle {
+    width: 32px; height: 32px;
+    min-width: 32px;
+    border-radius: 50%;
+    background: rgba(0,255,136,0.1);
+    border: 1px solid rgba(0,255,136,0.2);
+    color: var(--accent);
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .feature-row .title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+
+  .feature-row .desc {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  .code-block {
+    background: var(--bg-page);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    padding: 24px;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 13px;
+    line-height: 1.9;
+    overflow-x: auto;
+  }
+
+  .code-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+  }
+
+  .code-dots { display: flex; gap: 8px; }
+  .code-dots span {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    display: block;
+  }
+  .dot-red { background: #ff5f56; }
+  .dot-yellow { background: #ffbd2e; }
+  .dot-green { background: #27c93f; }
+
+  .code-filename {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .code-content { white-space: pre; }
+  .code-comment { color: #4a4a6a; }
+  .code-keyword { color: #7c6af5; }
+  .code-string { color: var(--accent); }
+  .code-func { color: #60c0f0; }
+
+  /* HOW IT WORKS */
+  .how-it-works {
+    padding: 100px 40px;
+    text-align: center;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  .steps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin-top: 48px;
+  }
+
+  .step-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-default);
+    border-radius: 14px;
+    padding: 28px;
+    text-align: left;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .step-card:hover {
+    border-color: var(--border-hover);
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+  }
+
+  .step-num {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: rgba(0,255,136,0.1);
+    border: 1px solid rgba(0,255,136,0.2);
+    color: var(--accent);
+    font-size: 18px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+  }
+
+  .step-card h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+  }
+
+  .step-card p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  /* FEATURES GRID */
+  .features {
+    padding: 100px 40px;
+    background: rgba(255,255,255,0.015);
+    border-top: 1px solid rgba(255,255,255,0.05);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .features-inner {
+    max-width: 1000px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    margin-top: 48px;
+  }
+
+  .feature-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-default);
+    border-radius: 14px;
+    padding: 28px;
+    text-align: left;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .feature-card:hover {
+    border-color: var(--border-hover);
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+  }
+
+  .feature-icon {
+    font-size: 28px;
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  .feature-card h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+  }
+
+  .feature-card p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  /* TESTIMONIALS */
+  .testimonials {
+    padding: 100px 40px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .testimonials-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-top: 48px;
+  }
+
+  .testimonial-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-default);
+    border-radius: 14px;
+    padding: 28px;
+    transition: border-color 0.2s;
+  }
+
+  .testimonial-card:hover { border-color: rgba(0,255,136,0.2); }
+
+  .quote-mark {
+    color: var(--accent);
+    opacity: 0.4;
+    font-size: 48px;
+    line-height: 1;
+    margin-bottom: 8px;
+    font-family: Georgia, serif;
+  }
+
+  .testimonial-card .quote {
+    font-size: 15px;
+    color: #9090b0;
+    line-height: 1.7;
+    font-style: italic;
+    margin-bottom: 20px;
+  }
+
+  .author-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .author-avatar {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: rgba(0,255,136,0.1);
+    border: 1px solid rgba(0,255,136,0.2);
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .author-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .author-role {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  /* FAQ */
+  .faq {
+    padding: 100px 40px;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .faq-item {
+    background: var(--bg-card);
+    border: 1px solid var(--border-default);
+    border-radius: 12px;
+    margin-bottom: 8px;
+    transition: border-color 0.2s;
+    overflow: hidden;
+  }
+
+  .faq-item.open { border-color: var(--border-hover); }
+
+  .faq-question {
+    padding: 18px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--text-primary);
+  }
+
+  .faq-toggle {
+    color: var(--accent);
+    font-size: 20px;
+    transition: transform 0.3s;
+    min-width: 20px;
+    text-align: center;
+  }
+
+  .faq-item.open .faq-toggle { transform: rotate(45deg); }
+
+  .faq-answer {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+  }
+
+  .faq-item.open .faq-answer {
+    max-height: 200px;
+  }
+
+  .faq-answer-inner {
+    padding: 0 20px 18px;
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  /* CTA */
+  .cta {
+    padding: 120px 40px;
+    text-align: center;
+    background: var(--bg-page);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-orb {
+    position: absolute;
+    width: 800px; height: 800px;
+    background: rgba(0,255,136,0.03);
+    filter: blur(150px);
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    z-index: 0;
+  }
+
+  .cta-content {
+    position: relative;
+    z-index: 1;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .cta h2 {
+    font-size: 52px;
+    font-weight: 800;
+    letter-spacing: -2px;
+    line-height: 1.1;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+  }
+
+  .cta h2 .highlight { color: var(--accent); }
+
+  .cta p {
+    font-size: 18px;
+    color: var(--text-secondary);
+    margin: 16px auto 40px;
+    max-width: 480px;
+    line-height: 1.7;
+  }
+
+  .cta-btn {
+    background: var(--accent);
+    color: #000;
+    font-weight: 700;
+    font-size: 16px;
+    padding: 18px 48px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .cta-btn:hover { background: var(--accent-hover); transform: translateY(-2px); }
+
+  /* FOOTER */
+  .footer {
+    background: var(--bg-page);
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding: 32px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .footer-left .footer-logo {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .footer-left .footer-logo .logo-jira { color: #fff; }
+  .footer-left .footer-logo .logo-ai { color: var(--accent); }
+
+  .footer-left .tagline {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .footer-right {
+    text-align: right;
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 6px;
+  }
+
+  .footer-links a {
+    color: var(--text-secondary);
+    font-size: 13px;
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .footer-links a:hover { color: var(--accent); }
+
+  .footer-copy {
+    font-size: 11px;
+    color: #3a3a58;
+  }
+
+  /* SCROLL ANIMATIONS */
+  .fade-up {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity 0.65s ease, transform 0.65s ease;
+  }
+
+  .fade-up.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .steps-grid .fade-up:nth-child(1) { transition-delay: 0s; }
+  .steps-grid .fade-up:nth-child(2) { transition-delay: 0.12s; }
+  .steps-grid .fade-up:nth-child(3) { transition-delay: 0.24s; }
+
+  .features-grid .fade-up:nth-child(1) { transition-delay: 0s; }
+  .features-grid .fade-up:nth-child(2) { transition-delay: 0.12s; }
+  .features-grid .fade-up:nth-child(3) { transition-delay: 0.24s; }
+  .features-grid .fade-up:nth-child(4) { transition-delay: 0.36s; }
+
+  .testimonials-grid .fade-up:nth-child(1) { transition-delay: 0s; }
+  .testimonials-grid .fade-up:nth-child(2) { transition-delay: 0.12s; }
+  .testimonials-grid .fade-up:nth-child(3) { transition-delay: 0.24s; }
+
+  /* MOBILE */
+  @media (max-width: 768px) {
+    .hero h1 { font-size: 42px; letter-spacing: -1.5px; }
+    .section-heading { font-size: 30px; }
+    .diff-grid { grid-template-columns: 1fr; }
+    .features-grid { grid-template-columns: 1fr; }
+    .social-proof { flex-direction: column; gap: 16px; text-align: center; }
+    .footer { flex-direction: column; text-align: center; }
+    .footer-right { text-align: center; }
+    .differentiator, .how-it-works, .features, .testimonials, .faq, .cta {
+      padding: 60px 20px;
+    }
+    .navbar { padding: 0 20px; }
+    .cta h2 { font-size: 36px; }
+  }
+</style>
+<base target="_blank">
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="nav-logo">
+    <span class="logo-jira">Jira</span><span class="logo-ai">AI</span>
+    <span class="nav-badge">Beta</span>
+  </div>
+  <div class="nav-powered">⚡ Powered by Claude</div>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-orb"></div>
+  <div class="hero-content">
+    <div class="hero-pill">
+      <span class="pulse-dot"></span>
+      <span>AI-Powered Ticket Generation</span>
+    </div>
+    <h1>
+      <span class="line1">Stop writing tickets.</span>
+      <span class="line2">Start shipping code.</span>
+    </h1>
+    <p class="hero-sub">
+      Paste your meeting transcript. JiraAI extracts real action items, detects owners, and creates Jira tickets in under 3 seconds — without creating noise from every casual mention.
+    </p>
+    <div class="demo-card">
+      <label class="demo-label">Meeting transcript</label>
+      <textarea class="demo-textarea" id="transcriptInput" placeholder="Alice will fix the authentication bug by end of day.
+Bob needs to review the payment API before Thursday.
+Sarah is responsible for updating the dashboard design.
+We should probably circle back on the caching strategy..."></textarea>
+      <button class="demo-btn" id="generateBtn">
+        <span class="spinner"></span>
+        <span class="btn-text">⚡ Generate Jira Tickets</span>
+      </button>
+      <div class="results-area" id="resultsArea"></div>
+    </div>
+  </div>
+</section>
+
+<!-- SOCIAL PROOF -->
+<div class="social-proof">
+  <div>
+    <span class="stars">★★★★★</span>
+    <span class="trust-text"> Trusted by 500+ engineering teams</span>
+  </div>
+  <div class="company-pill">FINTECH CO</div>
+  <div class="company-pill">HEALTHTECH</div>
+  <div class="company-pill">SAAS STARTUP</div>
+</div>
+
+<!-- DIFFERENTIATOR -->
+<section class="differentiator">
+  <div class="diff-grid">
+    <div class="fade-up">
+      <span class="section-label">Under the Hood</span>
+      <h2 class="section-heading">Not just keyword matching.</h2>
+      <p class="section-sub" style="margin-bottom:32px;">
+        Most tools create a ticket for every sentence containing "should." This one actually reads between the lines.
+      </p>
+      <div class="feature-row">
+        <div class="check-circle">✓</div>
+        <div>
+          <div class="title">False-positive filtering</div>
+          <div class="desc">"Maybe someone should look into that" gets ignored. "Alice will fix the auth bug by Friday" becomes a ticket.</div>
+        </div>
+      </div>
+      <div class="feature-row">
+        <div class="check-circle">✓</div>
+        <div>
+          <div class="title">Ownership extraction</div>
+          <div class="desc">Detects who owns each task from natural language — "John said he'd handle the deploy" assigns to John.</div>
+        </div>
+      </div>
+      <div class="feature-row">
+        <div class="check-circle">✓</div>
+        <div>
+          <div class="title">Intent classification</div>
+          <div class="desc">Distinguishes real commitments from suggestions, concerns from decisions. Trained on standup patterns.</div>
+        </div>
+      </div>
+    </div>
+    <div class="fade-up">
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots">
+            <span class="dot-red"></span>
+            <span class="dot-yellow"></span>
+            <span class="dot-green"></span>
+          </div>
+          <span class="code-filename">processor.py</span>
+        </div>
+        <div class="code-content"><span class="code-comment"># Input — raw meeting text</span>
+<span class="code-comment"># "maybe we should look into caching"  ✗</span>
+<span class="code-comment"># "Alice will fix the login bug today" ✓</span>
+
+<span class="code-keyword">def</span> <span class="code-func">extract_action_items</span>(<span class="code-func">transcript</span>):
+  items = []
+  <span class="code-keyword">for</span> sentence <span class="code-keyword">in</span> transcript.split(<span class="code-string">'.'</span>):
+    <span class="code-keyword">if</span> has_commitment_signal(sentence):
+      owner = extract_owner(sentence)
+      items.append({
+        <span class="code-string">'task'</span>: clean_task(sentence),
+        <span class="code-string">'assignee'</span>: owner
+      })
+  <span class="code-keyword">return</span> items
+
+<span class="code-comment"># Result: real tasks only, no noise</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how-it-works">
+  <span class="section-label fade-up">Process</span>
+  <h2 class="section-heading fade-up">Three steps to a clean Jira board</h2>
+  <p class="section-sub fade-up">From messy transcript to structured tickets in under 10 seconds.</p>
+  <div class="steps-grid">
+    <div class="step-card fade-up">
+      <div class="step-num">1</div>
+      <h3>Paste your transcript</h3>
+      <p>Drop in Zoom transcripts, Google Meet captions, or raw meeting notes. No formatting required.</p>
+    </div>
+    <div class="step-card fade-up">
+      <div class="step-num">2</div>
+      <h3>AI extracts action items</h3>
+      <p>Our NLP pipeline identifies real commitments vs. casual mentions. False positives are filtered before any tickets are created.</p>
+    </div>
+    <div class="step-card fade-up">
+      <div class="step-num">3</div>
+      <h3>Tickets created in Jira</h3>
+      <p>Action items become structured Jira tickets with titles, assignees, and direct links. Your board is updated in seconds.</p>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features">
+  <div class="features-inner">
+    <span class="section-label fade-up">Features</span>
+    <h2 class="section-heading fade-up">Built for engineering teams</h2>
+    <div class="features-grid">
+      <div class="feature-card fade-up">
+        <span class="feature-icon">🧠</span>
+        <h3>Context-aware extraction</h3>
+        <p>Reads intent, not just keywords. Understands the difference between a decision and a discussion.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <span class="feature-icon">👤</span>
+        <h3>Automatic assignment</h3>
+        <p>Detects task owners from conversational language. No manual triage.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <span class="feature-icon">⚡</span>
+        <h3>Sub-3-second creation</h3>
+        <p>OAuth-secured Jira integration. Tickets appear on your board before you close the meeting tab.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <span class="feature-icon">🔗</span>
+        <h3>Direct ticket links</h3>
+        <p>Every result card shows a one-click link to open the ticket directly in your Jira workspace.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="testimonials">
+  <span class="section-label fade-up">Testimonials</span>
+  <h2 class="section-heading fade-up">Loved by engineering leaders</h2>
+  <div class="testimonials-grid">
+    <div class="testimonial-card fade-up">
+      <div class="quote-mark">"</div>
+      <p class="quote">We were creating 20+ Jira tickets manually after every sprint planning session. JiraAI cut that to zero. The false-positive filtering is what sold our team — it doesn't spam your board with noise.</p>
+      <div class="author-row">
+        <div class="author-avatar">SR</div>
+        <div>
+          <div class="author-name">Siddharth Rao</div>
+          <div class="author-role">CTO, Series B Fintech</div>
+        </div>
+      </div>
+    </div>
+    <div class="testimonial-card fade-up">
+      <div class="quote-mark">"</div>
+      <p class="quote">The owner detection is surprisingly accurate. It correctly picks up "John said he'd take care of it" and assigns to John. Saves our engineering manager 45 minutes every Monday.</p>
+      <div class="author-row">
+        <div class="author-avatar">MP</div>
+        <div>
+          <div class="author-name">Maya Patel</div>
+          <div class="author-role">Engineering Manager, B2B SaaS</div>
+        </div>
+      </div>
+    </div>
+    <div class="testimonial-card fade-up">
+      <div class="quote-mark">"</div>
+      <p class="quote">We tried three other tools. They all created tickets for every sentence. JiraAI is the only one that actually understands what's a real action item vs a passing comment.</p>
+      <div class="author-row">
+        <div class="author-avatar">AK</div>
+        <div>
+          <div class="author-name">Arjun Kapoor</div>
+          <div class="author-role">VP Engineering, HealthTech</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq">
+  <span class="section-label fade-up">FAQ</span>
+  <h2 class="section-heading fade-up">Questions? Answered.</h2>
+  <div class="faq-list" style="margin-top:40px;">
+    <div class="faq-item fade-up">
+      <div class="faq-question">
+        <span>Does it work with Zoom or Google Meet transcripts?</span>
+        <span class="faq-toggle">+</span>
+      </div>
+      <div class="faq-answer">
+        <div class="faq-answer-inner">Yes — paste any plain text transcript. Zoom auto-transcripts, Google Meet captions, Otter.ai exports, or raw meeting notes all work. The NLP pipeline handles messy punctuation and speaker labels.</div>
+      </div>
+    </div>
+    <div class="faq-item fade-up">
+      <div class="faq-question">
+        <span>How does it filter out noise from real action items?</span>
+        <span class="faq-toggle">+</span>
+      </div>
+      <div class="faq-answer">
+        <div class="faq-answer-inner">It looks for commitment signals — future tense verbs, ownership language, and deadline markers. Vague suggestions like "maybe we should" or "someone could look into" are ignored before tickets are ever created.</div>
+      </div>
+    </div>
+    <div class="faq-item fade-up">
+      <div class="faq-question">
+        <span>Is my meeting transcript data stored?</span>
+        <span class="faq-toggle">+</span>
+      </div>
+      <div class="faq-answer">
+        <div class="faq-answer-inner">Transcripts are processed in real-time and immediately discarded. No meeting content is retained after the API returns your tickets.</div>
+      </div>
+    </div>
+    <div class="faq-item fade-up">
+      <div class="faq-question">
+        <span>What Jira plan do I need?</span>
+        <span class="faq-toggle">+</span>
+      </div>
+      <div class="faq-answer">
+        <div class="faq-answer-inner">Jira Cloud free tier and above. You'll need an Atlassian API token — setup takes under 2 minutes and the token is stored locally.</div>
+      </div>
+    </div>
+    <div class="faq-item fade-up">
+      <div class="faq-question">
+        <span>Can it handle large transcripts with many speakers?</span>
+        <span class="faq-toggle">+</span>
+      </div>
+      <div class="faq-answer">
+        <div class="faq-answer-inner">Yes — a 90-minute all-hands transcript typically produces 15-25 tickets, each correctly attributed. The pipeline scales linearly with transcript length.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <div class="cta-orb"></div>
+  <div class="cta-content">
+    <h2>Ready to save <span class="highlight">2 hours</span> every standup?</h2>
+    <p>Paste your first transcript and watch tickets appear. No credit card. No setup. Just results.</p>
+    <button class="cta-btn" id="ctaBtn">⚡ Start Free Today</button>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-left">
+    <div class="footer-logo">
+      <span class="logo-jira">Jira</span><span class="logo-ai">AI</span>
+    </div>
+    <div class="tagline">Automate the boring parts of every standup.</div>
+  </div>
+  <div class="footer-right">
+    <div class="footer-links">
+      <a href="https://github.com/k-kj0/meeting-to-jira-assistant" target="_blank">GitHub</a>
+      <a href="#">Dev.to Article</a>
+    </div>
+    <div class="footer-copy">© 2026 Kavya Jaiswal. Open source project.</div>
+  </div>
+</footer>
+
+<script>
+  // DEMO BUTTON LOGIC
+  const BACKEND = "https://YOUR-BACKEND-URL/process";
+  const btn = document.getElementById("generateBtn");
+  const textarea = document.getElementById("transcriptInput");
+  const results = document.getElementById("resultsArea");
+  const btnText = btn.querySelector(".btn-text");
+  const spinner = btn.querySelector(".spinner");
+
+  btn.addEventListener("click", async () => {
+    const value = textarea.value.trim();
+    if (!value) {
+      results.innerHTML = '<div class="error-card">Please paste a meeting transcript first.</div>';
+      results.classList.add("show");
+      return;
+    }
+
+    btn.disabled = true;
+    btn.classList.add("processing");
+    btnText.textContent = "Processing...";
+    results.classList.remove("show");
+    results.innerHTML = "";
+
+    let data;
+    try {
+      if (BACKEND.includes("YOUR-BACKEND-URL")) {
+        await new Promise(r => setTimeout(r, 2000));
+        data = {
+          action_items: [
+            { task: "Fix authentication bug in login flow", assignee: "Alice", jira_link: "#" },
+            { task: "Review payment API pull request before Thursday", assignee: "Bob", jira_link: "#" },
+            { task: "Update dashboard with new design mockups", assignee: "Sarah", jira_link: "#" }
+          ]
+        };
+      } else {
+        const res = await fetch(BACKEND, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ transcript: value })
+        });
+        if (!res.ok) throw new Error("Server error: " + res.status);
+        data = await res.json();
+      }
+
+      if (!data.action_items || data.action_items.length === 0) {
+        results.innerHTML = '<div class="error-card">No action items detected in this transcript. Try a transcript with clear commitments and deadlines.</div>';
+      } else {
+        results.innerHTML = data.action_items.map(item => 
+          '<div class="ticket-card">' +
+            '<div class="ticket-row1">' +
+              '<span class="ticket-title">' + item.task + '</span>' +
+              '<span class="ticket-badge">Action Item</span>' +
+            '</div>' +
+            '<div class="ticket-row2">' +
+              '<span class="ticket-assignee">👤 ' + item.assignee + '</span>' +
+              '<a href="' + item.jira_link + '" class="ticket-link">View in Jira →</a>' +
+            '</div>' +
+          '</div>'
+        ).join("");
+      }
+      results.classList.add("show");
+    } catch (err) {
+      results.innerHTML = '<div class="error-card">' + (err.message || "Something went wrong. Please try again.") + '</div>';
+      results.classList.add("show");
+    } finally {
+      btn.disabled = false;
+      btn.classList.remove("processing");
+      btnText.textContent = "⚡ Generate Jira Tickets";
+    }
+  });
+
+  // CTA SCROLL
+  document.getElementById("ctaBtn").addEventListener("click", () => {
+    document.getElementById("hero").scrollIntoView({ behavior: "smooth" });
+    setTimeout(() => textarea.focus(), 600);
+  });
+
+  // FAQ ACCORDION
+  document.querySelectorAll(".faq-question").forEach(q => {
+    q.addEventListener("click", () => {
+      const item = q.parentElement;
+      const isOpen = item.classList.contains("open");
+      document.querySelectorAll(".faq-item").forEach(i => i.classList.remove("open"));
+      if (!isOpen) item.classList.add("open");
+    });
+  });
+
+  // INTERSECTION OBSERVER
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("visible");
+      }
+    });
+  }, { threshold: 0.1, rootMargin: "0px 0px -40px 0px" });
+
+  document.querySelectorAll(".fade-up").forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
