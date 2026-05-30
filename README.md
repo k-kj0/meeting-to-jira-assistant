@@ -1,109 +1,170 @@
-# Meeting to Jira Assistant
+# DesignPro — Product Design Education Platform
 
-![screenshot 1](https://github.com/user-attachments/assets/facb0672-26b7-4ced-a0a4-611084eed0cf)
-![screenshot 2](https://github.com/user-attachments/assets/72386b37-783e-457a-9bd9-fd3bff450025)
-![screenshot 3](https://github.com/user-attachments/assets/fa98b966-dc61-40d3-8dbc-658e2a8a84d1)
-![screenshot 4](https://github.com/user-attachments/assets/568ac556-0530-4d21-971d-d74edae14a16)
-![screenshot 5](https://github.com/user-attachments/assets/1db39141-3cd2-4748-b923-20fa2687cbc7)
-![screenshot 6](https://github.com/user-attachments/assets/5c04db91-2666-4fd3-a299-e7996bced652)
+A modern, animated React + TypeScript + Vite + Tailwind CSS + Framer Motion landing page for a product design education platform.
 
----
+## 🚀 Tech Stack
 
-A web application that converts meeting transcripts into Jira tickets automatically. Paste a transcript, and the app extracts action items and creates structured Jira tickets — no manual ticket writing required.
+- **React 18** + **TypeScript**
+- **Vite** (Build tool)
+- **Tailwind CSS** (Styling)
+- **Framer Motion** (Animations)
+- **Lucide React** (Icons)
+- **Inter** (Google Fonts)
 
----
+## 📁 Project Structure
 
-## Overview
+```
+designpro/
+├── src/
+│   ├── App.tsx              # Main application with all sections
+│   ├── main.tsx             # Entry point
+│   ├── index.css            # Tailwind directives + base styles
+│   └── vite-env.d.ts        # Vite type declarations
+├── index.html               # HTML entry (with Google Fonts)
+├── package.json             # Dependencies
+├── tsconfig.json            # TypeScript config
+├── tsconfig.node.json       # TS config for Vite
+├── vite.config.ts           # Vite configuration
+├── tailwind.config.js       # Tailwind configuration
+├── postcss.config.js        # PostCSS configuration
+├── vercel.json              # Vercel deployment config
+├── Dockerfile               # Docker multi-stage build
+├── nginx.conf               # Nginx configuration for SPA
+├── docker-compose.yml       # Docker Compose setup
+├── .dockerignore            # Docker ignore rules
+└── .gitignore               # Git ignore rules
+```
 
-Engineering teams and project managers lose hours every week turning meeting notes into Jira tickets. This tool eliminates that work. It reads a meeting transcript, identifies action items, and pushes formatted tickets directly to your Jira project via the REST API.
-
----
-
-## How It Works
-
-Paste your meeting transcript into the input field. The app scans the text for action items using keyword detection, structures each one into a Jira ticket format, and creates them in your project automatically. Each ticket appears as a clickable link so you can review or edit it immediately in Jira.
-
----
-
-## Features
-
-- Extracts action items from unstructured meeting text
-- Creates real Jira tickets via the Jira REST API v3
-- Returns clickable ticket links after creation
-- Responsive UI that works on desktop and mobile
-- API credentials stored securely as environment variables
-
----
-
-## Tech Stack
-
-- **Backend** — Python, Flask
-- **Frontend** — HTML5, CSS3, JavaScript
-- **Integration** — Jira REST API v3
-- **Deployment** — Render
-
----
-
-## Getting Started
-
-### Prerequisites
-
-- Python 3.8 or higher
-- A Jira account with API access
-- A Jira project to push tickets into
-
-### Installation
+## 🛠️ Local Development
 
 ```bash
-git clone https://github.com/k-kjo/meeting-to-jira-assistant.git
-cd meeting-to-jira-assistant
-pip install -r requirements.txt
+# 1. Install dependencies
+npm install
+
+# 2. Start development server
+npm run dev
+
+# 3. Open http://localhost:5173
 ```
 
-### Configuration
+## 🌐 Deploy to Vercel (Recommended)
 
-Create a `.env` file in the root of the project:
+### Option A: GitHub + Vercel (Auto-deploy)
 
+1. **Push to GitHub:**
+```bash
+git init
+git add .
+git commit -m "Initial commit"
+git remote add origin https://github.com/YOUR_USERNAME/designpro.git
+git push -u origin main
 ```
-JIRA_BASE_URL=https://your-domain.atlassian.net
-JIRA_EMAIL=your-email@example.com
-JIRA_API_TOKEN=your_api_token_here
-JIRA_PROJECT_KEY=YOUR_PROJECT_KEY
-```
 
-To get your Jira API token, go to your Atlassian account settings under Security → API tokens → Create API token.
+2. **Import in Vercel:**
+   - Go to [vercel.com](https://vercel.com)
+   - Click "Add New Project"
+   - Import from GitHub
+   - Select your repository
+   - Vercel auto-detects Vite framework
+   - Click **Deploy**
 
-### Running Locally
+3. **Done!** Vercel will:
+   - Run `npm run build`
+   - Deploy `dist/` folder
+   - Handle SPA routing via `vercel.json`
+   - Provide HTTPS + CDN automatically
+
+### Option B: Vercel CLI
 
 ```bash
-python app.py
+# Install Vercel CLI
+npm i -g vercel
+
+# Login and deploy
+vercel login
+vercel
+
+# Follow prompts — Vercel auto-detects Vite
 ```
 
-The app will be available at `http://localhost:5000`.
+## 🐳 Docker Deployment
 
----
+### Build & Run with Docker
 
-## Project Structure
+```bash
+# Build the Docker image
+docker build -t designpro .
 
-```
-meeting-to-jira-assistant/
-├── app.py                  # Flask app and Jira API logic
-├── requirements.txt        # Python dependencies
-├── templates/
-│   └── index.html          # Frontend
-├── static/
-│   └── style.css           # Styles
-└── .env                    # Local credentials (not committed)
+# Run the container
+docker run -d -p 8080:80 --name designpro designpro
+
+# Open http://localhost:8080
 ```
 
----
+### Docker Compose (Easier)
 
-## Contributing
+```bash
+# Build and start
+docker-compose up -d
 
-Open an issue before submitting a pull request for major changes. Small fixes and improvements are welcome directly as PRs.
+# View logs
+docker-compose logs -f
 
----
+# Stop
+docker-compose down
 
-## License
+# Rebuild after changes
+docker-compose up -d --build
+```
 
-MIT © 2025
+### Why CSS/Styles Work in Docker
+
+The **multi-stage Dockerfile** ensures styles work:
+
+1. **Stage 1 (Build):** Node.js builds the app → runs `npm run build` → generates `dist/` with compiled CSS
+2. **Stage 2 (Production):** Nginx serves only the built `dist/` files (HTML + CSS + JS)
+
+The `nginx.conf` handles:
+- ✅ SPA routing (all routes → `index.html`)
+- ✅ Gzip compression
+- ✅ Static asset caching
+- ✅ Security headers
+
+## 🔧 Key Configuration Files Explained
+
+### `vite.config.ts`
+- Sets `outDir: 'dist'` (Vercel reads this)
+- Code splitting into chunks (vendor, animation, icons)
+
+### `vercel.json`
+- Tells Vercel: build command = `npm run build`, output = `dist/`
+- SPA rewrite rule: all paths → `index.html`
+- Asset caching headers for performance
+
+### `tailwind.config.js`
+- Content paths: `./index.html` + `./src/**/*.{js,ts,jsx,tsx}`
+- Custom colors, animations, fonts
+
+### `tsconfig.json`
+- Strict TypeScript settings
+- Module resolution: `bundler` (for Vite)
+- Includes only `src/` directory
+
+## 📝 Important Notes
+
+- **Video background** uses external CloudFront URL — ensure CORS allows your domain
+- **Google Fonts** loaded via `index.html` `<link>` tag
+- **No Pricing section** — removed as requested for resume
+- **All animations** use Framer Motion with scroll triggers
+- **Responsive** — mobile-first with breakpoints: sm(640), md(768), lg(1024), xl(1280)
+
+## 🎯 Features for Resume
+
+- ✅ Full-screen video hero with parallax
+- ✅ Shiny animated gradient text (Framer Motion)
+- ✅ Scroll-triggered animations
+- ✅ Interactive hover effects
+- ✅ Mobile-responsive navigation
+- ✅ Docker containerization
+- ✅ Production-ready Nginx config
+- ✅ CI/CD ready (Vercel/GitHub)
