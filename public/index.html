@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JiraAI — Meeting Transcripts to GitHub Issues</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #09090f;
+  --bg1: #0f0f1a;
+  --bg2: #141420;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --text: #eeeef5;
+  --sub: #7a7a96;
+  --muted: #3e3e56;
+  --green: #00e5a0;
+  --green-dim: rgba(0,229,160,0.08);
+  --green-border: rgba(0,229,160,0.2);
+  --serif: 'Instrument Serif', Georgia, serif;
+  --sans: 'DM Sans', system-ui, sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+.mesh {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 80vw 60vh at 20% 10%, rgba(0,229,160,0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 60vw 50vh at 80% 80%, rgba(100,80,255,0.05) 0%, transparent 60%);
+}
+
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 48px; height: 64px;
+  background: rgba(9,9,15,0.7);
+  backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid var(--border);
+}
+
+.logo { font-weight: 600; font-size: 17px; letter-spacing: -0.02em; color: var(--text); }
+.logo sup { font-size: 9px; color: var(--green); font-weight: 500; letter-spacing: 0.05em; margin-left: 2px; vertical-align: super; }
+
+.nav-right { display: flex; align-items: center; gap: 32px; }
+.nav-link { font-size: 13px; color: var(--sub); text-decoration: none; transition: color 0.2s; }
+.nav-link:hover { color: var(--text); }
+.nav-cta { font-size: 13px; font-weight: 500; color: var(--bg); background: var(--green); padding: 8px 20px; border-radius: 8px; text-decoration: none; transition: opacity 0.2s; }
+.nav-cta:hover { opacity: 0.85; }
+
+.hero {
+  position: relative; z-index: 2; min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 120px 24px 80px;
+}
+
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--green-dim); border: 1px solid var(--green-border); color: var(--green);
+  font-size: 12px; font-weight: 500; padding: 6px 16px; border-radius: 100px; margin-bottom: 36px;
+}
+.hero-badge .dot { width: 6px; height: 6px; background: var(--green); border-radius: 50%; animation: pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.3; transform: scale(0.7); } }
+
+.hero h1 {
+  font-family: var(--serif); font-weight: 400; font-size: clamp(52px, 7vw, 96px); line-height: 1.0;
+  letter-spacing: -0.02em; max-width: 900px;
+}
+.hero h1 em { font-style: italic; color: var(--green); }
+
+.hero-sub {
+  font-size: 17px; color: var(--sub); font-weight: 300; line-height: 1.7; max-width: 540px;
+  margin: 28px auto 0;
+}
+
+.panel-wrap { position: relative; z-index: 2; max-width: 760px; width: 100%; margin: 56px auto 0; }
+.panel {
+  background: var(--bg1); border: 1px solid var(--border2); border-radius: 20px; overflow: hidden;
+  box-shadow: 0 40px 80px rgba(0,0,0,0.5);
+}
+.panel-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border); background: var(--bg2); }
+.panel-dots { display: flex; gap: 7px; }
+.panel-dots span { width: 11px; height: 11px; border-radius: 50%; }
+.pd-r { background: #ff5f57; } .pd-y { background: #febc2e; } .pd-g { background: #28c840; }
+.panel-title { font-size: 12px; color: var(--muted); font-family: 'SF Mono', monospace; }
+.panel-body { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+.input-label { font-size: 11px; color: var(--sub); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 500; }
+
+.setup-note {
+  font-size: 12px; color: var(--sub); background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 14px; line-height: 1.6; display: none;
+}
+.setup-note.visible { display: block; }
+.setup-note code { color: var(--green); }
+
+textarea.t-input {
+  width: 100%; min-height: 148px; background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+  border-radius: 12px; color: var(--text); font-family: 'SF Mono', monospace; font-size: 13px;
+  line-height: 1.8; padding: 16px; resize: vertical; outline: none; transition: border-color 0.2s;
+}
+textarea.t-input::placeholder { color: #2e2e46; }
+textarea.t-input:focus { border-color: rgba(0,229,160,0.3); }
+
+.run-btn {
+  background: var(--green); color: #000; font-size: 14px; font-weight: 600;
+  border: none; border-radius: 10px; padding: 14px 24px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s;
+}
+.run-btn:hover { background: #00cf90; transform: translateY(-1px); }
+.run-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+.spin { width: 15px; height: 15px; border: 2px solid rgba(0,0,0,0.2); border-top-color: #000; border-radius: 50%; animation: spin 0.6s linear infinite; display: none; }
+.run-btn.loading .spin { display: block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.results { display: none; flex-direction: column; gap: 10px; }
+.results.visible { display: flex; }
+
+.ticket {
+  background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 10px;
+  padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+}
+.ticket:hover { border-color: rgba(0,229,160,0.25); }
+.ticket-left { flex: 1; min-width: 0; }
+.ticket-title { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 6px; line-height: 1.5; }
+.ticket-who { font-size: 12px; color: var(--sub); }
+.ticket-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+
+.t-tag { font-size: 10px; font-weight: 500; color: var(--green); background: var(--green-dim); border: 1px solid var(--green-border); padding: 3px 10px; border-radius: 100px; text-transform: uppercase; }
+.t-btn {
+  font-size: 12px; font-weight: 500; color: var(--bg); background: var(--green); text-decoration: none;
+  border: none; padding: 6px 14px; border-radius: 7px; cursor: pointer; transition: all 0.2s; white-space: nowrap;
+}
+.t-btn:hover { opacity: 0.85; }
+.t-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.t-link { font-size: 12px; color: var(--sub); text-decoration: none; border: 1px solid var(--border); padding: 4px 12px; border-radius: 7px; transition: all 0.2s; white-space: nowrap; }
+.t-link:hover { color: var(--text); border-color: var(--border2); }
+
+.err-card { background: rgba(255,80,60,0.06); border: 1px solid rgba(255,80,60,0.2); color: #ff8070; font-size: 13px; padding: 14px 16px; border-radius: 10px; }
+
+section { position: relative; z-index: 2; }
+.how-section { padding: 140px 48px; max-width: 1100px; margin: 0 auto; }
+.section-eyebrow { font-size: 11px; font-weight: 500; color: var(--green); text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 20px; }
+.section-h { font-family: var(--serif); font-weight: 400; font-size: clamp(36px, 4vw, 54px); letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 16px; }
+.section-h em { font-style: italic; color: var(--green); }
+.section-sub { font-size: 16px; color: var(--sub); font-weight: 300; line-height: 1.7; max-width: 520px; margin-bottom: 64px; }
+
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.step { background: var(--bg1); padding: 40px 36px; }
+.step-n { font-family: var(--serif); font-size: 48px; color: var(--muted); line-height: 1; margin-bottom: 20px; }
+.step h3 { font-size: 18px; font-weight: 500; margin-bottom: 10px; }
+.step p { font-size: 14px; color: var(--sub); line-height: 1.75; font-weight: 300; }
+
+.details-section { padding: 0 48px 140px; max-width: 1100px; margin: 0 auto; }
+.details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.detail-card { background: var(--bg1); border: 1px solid var(--border); border-radius: 16px; padding: 36px; }
+.d-icon { width: 40px; height: 40px; border-radius: 10px; background: var(--green-dim); border: 1px solid var(--green-border); display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 20px; }
+.detail-card h3 { font-size: 17px; font-weight: 500; margin-bottom: 10px; }
+.detail-card p { font-size: 14px; color: var(--sub); line-height: 1.75; font-weight: 300; }
+
+footer { position: relative; z-index: 2; border-top: 1px solid var(--border); padding: 28px 48px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+.footer-logo { font-size: 15px; font-weight: 600; color: var(--text); }
+.footer-copy { font-size: 12px; color: var(--muted); }
+.footer-links { display: flex; gap: 20px; }
+.footer-links a { font-size: 13px; color: var(--sub); text-decoration: none; }
+.footer-links a:hover { color: var(--text); }
+
+@media (max-width: 768px) {
+  nav { padding: 0 20px; }
+  .hero { padding: 100px 20px 60px; }
+  .how-section, .details-section { padding-left: 20px; padding-right: 20px; }
+  .steps { grid-template-columns: 1fr; }
+  .details-grid { grid-template-columns: 1fr; }
+  footer { flex-direction: column; align-items: flex-start; gap: 16px; padding: 24px 20px; }
+  .nav-right .nav-link { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="mesh"></div>
+
+<nav>
+  <div class="logo">JiraAI<sup>BETA</sup></div>
+  <div class="nav-right">
+    <a href="#how" class="nav-link">How it works</a>
+    <a href="https://github.com/k-kj0/meeting-to-jira-assistant" class="nav-link" target="_blank">GitHub</a>
+    <a href="#try" class="nav-cta">Try it</a>
+  </div>
+</nav>
+
+<div class="hero" id="try">
+  <div class="hero-badge">
+    <span class="dot"></span>
+    Meeting transcript → real GitHub Issues, automatically
+  </div>
+  <h1>
+    Stop writing<br>
+    <em>tickets</em> by hand.
+  </h1>
+  <p class="hero-sub">
+    Paste a raw meeting transcript. A free OpenRouter-hosted model reads it, pulls out real commitments with named owners, and you create each one as a real GitHub Issue with one click.
+  </p>
+
+  <div class="panel-wrap">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-dots"><span class="pd-r"></span><span class="pd-y"></span><span class="pd-g"></span></div>
+        <span class="panel-title">transcript-processor</span>
+        <span></span>
+      </div>
+      <div class="panel-body">
+        <div class="input-label">Meeting transcript</div>
+        <textarea class="t-input" id="transcriptInput" placeholder="Alice will fix the authentication bug by end of day.
+Bob needs to review the payment API before Thursday.
+Sarah is responsible for updating the dashboard design.
+We should probably circle back on the caching strategy..."></textarea>
+        <button class="run-btn" id="runBtn">
+          <span class="spin"></span>
+          <span class="btn-label">Extract action items →</span>
+        </button>
+        <div class="setup-note" id="setupNote"></div>
+        <div class="results" id="results"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="how-section" id="how">
+  <div class="section-eyebrow">Process</div>
+  <h2 class="section-h">Two steps.<br><em>Real tickets.</em></h2>
+  <p class="section-sub">From messy transcript to a live GitHub Issue.</p>
+  <div class="steps">
+    <div class="step">
+      <div class="step-n">01</div>
+      <h3>Paste your transcript</h3>
+      <p>Zoom captions, Meet transcripts, raw notes — anything works.</p>
+    </div>
+    <div class="step">
+      <div class="step-n">02</div>
+      <h3>AI extracts commitments</h3>
+      <p>A free OpenRouter-hosted model reads the text and returns only real, owned commitments — vague suggestions are dropped.</p>
+    </div>
+    <div class="step">
+      <div class="step-n">03</div>
+      <h3>Click to create the ticket</h3>
+      <p>Each extracted item gets a "Create ticket" button. One click makes a real, clickable GitHub Issue.</p>
+    </div>
+  </div>
+</section>
+
+<section class="details-section">
+  <div class="section-eyebrow">Under the hood</div>
+  <h2 class="section-h">One AI call.<br><em>One API call.</em></h2>
+  <p class="section-sub">No keyword tricks. A real model reads the transcript; a real API creates the ticket.</p>
+  <div class="details-grid">
+    <div class="detail-card">
+      <div class="d-icon">🧠</div>
+      <h3>OpenRouter free-tier extraction</h3>
+      <p>The transcript is sent to a free open-weight model via OpenRouter. It returns structured JSON — task, assignee, deadline.</p>
+    </div>
+    <div class="detail-card">
+      <div class="d-icon">🎫</div>
+      <h3>GitHub Issues as the board</h3>
+      <p>Tickets are created directly as GitHub Issues in a repo you choose — no OAuth dance, no credit card.</p>
+    </div>
+    <div class="detail-card">
+      <div class="d-icon">✅</div>
+      <h3>Review before creating</h3>
+      <p>Extracted items are shown first. Nothing is created until you click the button for that specific item.</p>
+    </div>
+    <div class="detail-card">
+      <div class="d-icon">🔒</div>
+      <h3>Your keys, your data</h3>
+      <p>API keys live in Vercel's environment variables (or your local .env). Nothing is stored beyond a single request.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-logo">JiraAI<sup>BETA</sup></div>
+  <div class="footer-copy">© 2026 Kavya Jaiswal · Open source</div>
+  <div class="footer-links">
+    <a href="https://github.com/k-kj0/meeting-to-jira-assistant" target="_blank">GitHub</a>
+  </div>
+</footer>
+
+<script>
+// Same-origin: this page is served by the Flask app itself, both locally and on Vercel.
+const EXTRACT_URL = "/api/extract";
+const CREATE_TICKET_URL = "/api/create-ticket";
+
+const runBtn = document.getElementById("runBtn");
+const textarea = document.getElementById("transcriptInput");
+const results = document.getElementById("results");
+const setupNote = document.getElementById("setupNote");
+const btnLabel = runBtn.querySelector(".btn-label");
+
+function renderTickets(items) {
+  results.innerHTML = items.map((item, i) => `
+    <div class="ticket" data-idx="${i}">
+      <div class="ticket-left">
+        <div class="ticket-title">${escapeHtml(item.task)}</div>
+        <div class="ticket-who">Assigned to <strong style="color:var(--text)">${escapeHtml(item.assignee || "Unassigned")}</strong>${item.deadline && item.deadline !== "null" ? " &nbsp;·&nbsp; Due " + escapeHtml(item.deadline) : ""}</div>
+      </div>
+      <div class="ticket-right">
+        <span class="t-tag">Task</span>
+        <button class="t-btn" data-action="create">Create ticket</button>
+      </div>
+    </div>`).join("");
+  results.classList.add("visible");
+
+  results.querySelectorAll('[data-action="create"]').forEach((btn, i) => {
+    btn.addEventListener("click", () => createTicket(items[i], btn));
+  });
+}
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str ?? "";
+  return div.innerHTML;
+}
+
+async function createTicket(item, btn) {
+  btn.disabled = true;
+  btn.textContent = "Creating…";
+  try {
+    const res = await fetch(CREATE_TICKET_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(item)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || ("Server error " + res.status));
+
+    const link = document.createElement("a");
+    link.href = data.url;
+    link.target = "_blank";
+    link.className = "t-link";
+    link.textContent = "Open issue ↗";
+    btn.replaceWith(link);
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = "Create ticket";
+    const err = document.createElement("div");
+    err.className = "err-card";
+    err.style.marginTop = "8px";
+    err.textContent = e.message || "Could not create the ticket.";
+    btn.closest(".ticket").after(err);
+  }
+}
+
+runBtn.addEventListener("click", async () => {
+  const val = textarea.value.trim();
+  setupNote.classList.remove("visible");
+  if (!val) {
+    results.innerHTML = '<div class="err-card">Paste a transcript first.</div>';
+    results.classList.add("visible");
+    return;
+  }
+
+  runBtn.disabled = true;
+  runBtn.classList.add("loading");
+  btnLabel.textContent = "Reading transcript…";
+  results.classList.remove("visible");
+  results.innerHTML = "";
+
+  try {
+    const res = await fetch(EXTRACT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ transcript: val })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || ("Server error " + res.status));
+
+    if (!data.action_items || !data.action_items.length) {
+      results.innerHTML = '<div class="err-card">No committed action items found. Try a transcript with a clear owner and future-tense verb.</div>';
+      results.classList.add("visible");
+    } else {
+      renderTickets(data.action_items);
+    }
+  } catch (e) {
+    results.innerHTML = `<div class="err-card">${escapeHtml(e.message || "Something went wrong.")}</div>`;
+    results.classList.add("visible");
+    setupNote.innerHTML = 'Make sure the server has <code>OPENROUTER_API_KEY</code> / <code>GITHUB_TOKEN</code> / <code>GITHUB_REPO</code> set (Vercel dashboard, or your local <code>.env</code>).';
+    setupNote.classList.add("visible");
+  } finally {
+    runBtn.disabled = false;
+    runBtn.classList.remove("loading");
+    btnLabel.textContent = "Extract action items →";
+  }
+});
+</script>
+</body>
+</html>
