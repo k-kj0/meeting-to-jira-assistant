@@ -10,9 +10,10 @@ app = Flask(__name__)
 
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
 
-# Any ":free" model works here — swap if one is rate-limited or rotated out.
-# See https://openrouter.ai/models?max_price=0 for the current free list.
-OPENROUTER_MODEL = "meta-llama/llama-3.1-8b-instruct:free"
+# OpenRouter's own free-tier router: it picks a currently-working free model
+# for you, so this doesn't break every time one specific model gets pulled.
+# If you ever want to pin an exact model instead, see openrouter.ai/models?max_price=0
+OPENROUTER_MODEL = "openrouter/free"
 
 SYSTEM_PROMPT = """You read meeting transcripts and extract ONLY committed action items.
 
