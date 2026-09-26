@@ -3,9 +3,8 @@ import json
 import requests
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
-from pydantic import ValidationError
-
-from models import ExtractionResult
+from pydantic import BaseModel, ValidationError, field_validator
+from typing import Optional, List
 
 load_dotenv()
 
@@ -31,6 +30,36 @@ Rules:
 - Respond with ONLY raw JSON, no markdown fences, no commentary, in this exact shape:
 {"action_items": [{"task": "short task description", "assignee": "Name or Unassigned", "deadline": "date mentioned or null"}]}
 """
+
+
+# --- Validation models (kept in this file on purpose: see note in README/CI
+# about Vercel's per-file function isolation under /api) ---
+
+class ActionItem(BaseModel):
+    task: str
+    assignee: str = "Unassigned"
+    deadline: Optional[str] = None
+
+    @field_validator("task")
+    @classmethod
+    def task_must_not_be_empty(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("task cannot be empty")
+        return v
+
+    @field_validator("deadline", mode="before")
+    @classmethod
+    def blank_deadline_is_none(cls, v):
+        if v is None:
+            return None
+        if isinstance(v, str) and v.strip().lower() in ("", "null", "none", "n/a", "tbd"):
+            return None
+        return v
+
+
+class ExtractionResult(BaseModel):
+    action_items: List[ActionItem] = []
 
 
 def parse_json_loose(text):
@@ -92,8 +121,6 @@ def extract():
         raw_text = resp.json()["choices"][0]["message"]["content"]
         parsed = parse_json_loose(raw_text)
 
-        # This is the new part: don't trust the parsed JSON just because it parsed.
-        # Check it actually matches the shape we expect before sending it to the frontend.
         try:
             result = ExtractionResult(**parsed)
         except ValidationError as ve:
