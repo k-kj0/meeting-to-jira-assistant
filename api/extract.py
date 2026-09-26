@@ -3,6 +3,9 @@ import json
 import requests
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
+from pydantic import ValidationError
+
+from models import ExtractionResult
 
 load_dotenv()
 
@@ -14,6 +17,11 @@ OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
 # for you, so this doesn't break every time one specific model gets pulled.
 # If you ever want to pin an exact model instead, see openrouter.ai/models?max_price=0
 OPENROUTER_MODEL = "openrouter/free"
+
+# A very long transcript costs more tokens and takes longer to process.
+# This caps it so one bad request can't hang the server or blow through your
+# free-tier limits. ~20,000 characters is roughly a two-hour meeting.
+MAX_TRANSCRIPT_CHARS = 20000
 
 SYSTEM_PROMPT = """You read meeting transcripts and extract ONLY committed action items.
 
@@ -52,6 +60,12 @@ def extract():
     if not transcript:
         return jsonify({"error": "No transcript provided"}), 400
 
+    if len(transcript) > MAX_TRANSCRIPT_CHARS:
+        return jsonify({
+            "error": f"Transcript is too long ({len(transcript)} characters). "
+                     f"Max is {MAX_TRANSCRIPT_CHARS}."
+        }), 400
+
     if not OPENROUTER_API_KEY:
         return jsonify({"error": "Server is missing OPENROUTER_API_KEY."}), 500
 
@@ -77,6 +91,20 @@ def extract():
 
         raw_text = resp.json()["choices"][0]["message"]["content"]
         parsed = parse_json_loose(raw_text)
-        return jsonify(parsed)
+
+        # This is the new part: don't trust the parsed JSON just because it parsed.
+        # Check it actually matches the shape we expect before sending it to the frontend.
+        try:
+            result = ExtractionResult(**parsed)
+        except ValidationError as ve:
+            return jsonify({
+                "error": "The model's response didn't match the expected format.",
+                "details": ve.errors(),
+            }), 502
+
+        return jsonify(result.model_dump())
+
+    except requests.exceptions.Timeout:
+        return jsonify({"error": "OpenRouter took too long to respond. Try again."}), 504
     except Exception as e:
         return jsonify({"error": f"Extraction failed: {str(e)}"}), 500
